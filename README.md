@@ -9,10 +9,20 @@
 
 To run the example project, clone the repo, and run `pod install` from the Example directory first.
 
+### AppDelegate
+
 ```objective-c
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    [ARNPush setDeviceTokenBlock:^(NSString *deviceToken, NSError *error) {
+        if (error) {
+            // didFailToRegisterForRemoteNotificationsWithError
+        } else {
+            // didRegisterForRemoteNotificationsWithDeviceToken
+        }
+    }];
+
     [ARNPush setAlertBlock:^(NSDictionary *userInfo) {
         NSLog(@"Call ARNPush Alert Block");
     }];
@@ -29,6 +39,21 @@ To run the example project, clone the repo, and run `pod install` from the Examp
                 launchOptions:launchOptions];
 
     return YES;
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+    // call ARNPush DeviceTokenBlock
+}
+
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
+{
+    // call ARNPush DeviceTokenBlock
+}
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
+{
+   // call ARNPush AlertBlock, SoundBlock, BadgeBlock
 }
 
 ```

@@ -14,7 +14,13 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    // Override point for customization after application launch.
+    [ARNPush setDeviceTokenBlock:^(NSString *deviceToken, NSError *error) {
+        if (error) {
+            // didFailToRegisterForRemoteNotificationsWithError
+        } else {
+            // didRegisterForRemoteNotificationsWithDeviceToken
+        }
+    }];
     
     [ARNPush setAlertBlock:^(NSDictionary *userInfo) {
         NSLog(@"Call ARNPush Alert Block");
