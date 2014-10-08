@@ -70,6 +70,20 @@ it, simply add the following line to your Podfile:
 
     pod "ARNPush"
 
+## Method Swizzling
+
+replaced the following methods.
+
+```objective-c
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
+
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo;
+
+```
+
 ## License
 
 ARNPush is available under the MIT license. See the LICENSE file for more info.

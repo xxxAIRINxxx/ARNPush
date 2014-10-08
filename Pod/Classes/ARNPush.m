@@ -21,7 +21,7 @@ static ARNPushBlock alertBlock_ = nil;
 static ARNPushBlock soundBlock_ = nil;
 static ARNPushBlock badgeBlock_ = nil;
 
-static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^block)(id params)) {
+static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^block)(id selfObj, id app, id params)) {
     IMP newIMP = imp_implementationWithBlock(block);
     class_replaceMethod(class, originalSelector, newIMP, method_getTypeEncoding(class_getInstanceMethod(class, originalSelector)));
 }
@@ -85,17 +85,17 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
     //Method Swizzling
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
-                              ^(NSData *data) {
+                              ^(id selfObj, id app, NSData *data) {
                                   [[self class] didRegisterForRemoteNotificationsWithDeviceToken:data];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didFailToRegisterForRemoteNotificationsWithError:),
-                              ^(NSError *error) {
+                              ^(id selfObj, id app, NSError *error) {
                                   [[self class] didFailToRegisterForRemoteNotificationsWithError:error];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didReceiveRemoteNotification:),
-                              ^(NSDictionary *userInfo) {
+                              ^(id selfObj, id app, NSDictionary *userInfo) {
                                   [[self class] didReceiveRemoteNotification:userInfo];
                               });
 }
