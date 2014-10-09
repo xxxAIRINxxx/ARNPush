@@ -24,6 +24,7 @@ typedef void (^ARNPushBlock)(NSDictionary *userInfo);
 + (void)setBadgeBlock:(ARNPushBlock)badgeBlock;
 
 + (void)registerForTypes:(UIRemoteNotificationType)types
-           launchOptions:(NSDictionary *)launchOptions;
+           launchOptions:(NSDictionary *)launchOptions
+              categories:(NSSet *)categories; // categories is iOS8 Only uses
 
 @end

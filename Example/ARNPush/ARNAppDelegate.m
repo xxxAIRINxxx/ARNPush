@@ -35,7 +35,8 @@
     }];
     
     [ARNPush registerForTypes:(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge)
-                launchOptions:launchOptions];
+                launchOptions:launchOptions
+                   categories:nil];
     
     return YES;
 }

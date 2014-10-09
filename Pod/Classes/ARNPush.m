@@ -64,13 +64,14 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
 
 + (void)registerForTypes:(UIRemoteNotificationType)types
            launchOptions:(NSDictionary *)launchOptions
+              categories:(NSSet *)categories;
 {
     canReceivedPush_ = YES;
     
     UIApplication *app = [UIApplication sharedApplication];
     if ([[self class] isiOS8orLater]) {
         [app registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationType)types
-                                                                                categories:nil]];
+                                                                                categories:categories]];
         
         [app registerForRemoteNotifications];
     } else {
