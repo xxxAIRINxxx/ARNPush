@@ -90,48 +90,52 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         [app registerForRemoteNotificationTypes:types];
     }
     
-    NSDictionary *userInfo = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
-    if (userInfo) {
-        [[self class] pushNotificationWithUserInfo:userInfo
-                              backgroundFetchBlock:nil
-                        handleActionWithIdentifier:nil
-                                  handleAtionBlock:nil];
-    }
-    
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
                               ^(id selfObj, id app, NSData *data) {
-                                  [[self class] didRegisterForRemoteNotificationsWithDeviceToken:data];
+                                  [ARNPush didRegisterForRemoteNotificationsWithDeviceToken:data];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didFailToRegisterForRemoteNotificationsWithError:),
                               ^(id selfObj, id app, NSError *error) {
-                                  [[self class] didFailToRegisterForRemoteNotificationsWithError:error];
+                                  [ARNPush didFailToRegisterForRemoteNotificationsWithError:error];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didReceiveRemoteNotification:),
                               ^(id selfObj, id app, NSDictionary *userInfo) {
-                                  [[self class] pushNotificationWithUserInfo:userInfo
-                                                        backgroundFetchBlock:nil
-                                                  handleActionWithIdentifier:nil
-                                                            handleAtionBlock:nil];
+                                  [ARNPush pushNotificationWithUserInfo:userInfo
+                                                   backgroundFetchBlock:nil
+                                             handleActionWithIdentifier:nil
+                                                       handleAtionBlock:nil];
                               });
-    ARNPushReplaceClassMethod([app.delegate class],
-                              @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:),
-                              ^(id selfObj, id app, NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result)) {
-                                  [[self class] pushNotificationWithUserInfo:userInfo
-                                                        backgroundFetchBlock:resultBlock
-                                                  handleActionWithIdentifier:nil
-                                                            handleAtionBlock:nil];
-                              });
+    
+    if (ARNPush_backgroundFetchBlock_) {
+        ARNPushReplaceClassMethod([app.delegate class],
+                                  @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:),
+                                  ^(id selfObj, id app, NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result)) {
+                                      [ARNPush pushNotificationWithUserInfo:userInfo
+                                                       backgroundFetchBlock:resultBlock
+                                                 handleActionWithIdentifier:nil
+                                                           handleAtionBlock:nil];
+                                  });
+    } else {
+        NSDictionary *userInfo = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+        if (userInfo) {
+            [ARNPush pushNotificationWithUserInfo:userInfo
+                             backgroundFetchBlock:nil
+                       handleActionWithIdentifier:nil
+                                 handleAtionBlock:nil];
+        }
+    }
+    
     if ([[self class] isiOS8orLater]) {
         ARNPushReplaceClassMethod([app.delegate class],
                                   @selector(application:handleActionWithIdentifier:forRemoteNotification:completionHandler:),
                                   ^(id selfObj, id app, NSString *identifier, NSDictionary *userInfo, void (^completionHandler)()) {
-                                      [[self class] pushNotificationWithUserInfo:userInfo
-                                                            backgroundFetchBlock:nil
-                                                      handleActionWithIdentifier:identifier
-                                                                handleAtionBlock:completionHandler];
+                                      [ARNPush pushNotificationWithUserInfo:userInfo
+                                                       backgroundFetchBlock:nil
+                                                 handleActionWithIdentifier:identifier
+                                                           handleAtionBlock:completionHandler];
                                   });
     }
 }
@@ -203,18 +207,19 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         if (pushAlert && ARNPush_alertBlock_) {
             ARNPush_alertBlock_(userInfo);
         }
-        if (pushSound && ARNPush_soundBlock_) {
-            ARNPush_soundBlock_(userInfo);
-        }
-        if (pushBadge && ARNPush_badgeBlock_) {
-            ARNPush_badgeBlock_(userInfo);
-        }
         if (backgroundFetchBlock) {
             backgroundFetchBlock(UIBackgroundFetchResultNoData);
         }
         if (handleAtionBlock) {
             handleAtionBlock();
         }
+    }
+    
+    if (pushSound && ARNPush_soundBlock_) {
+        ARNPush_soundBlock_(userInfo);
+    }
+    if (pushBadge && ARNPush_badgeBlock_) {
+        ARNPush_badgeBlock_(userInfo);
     }
 }
 
