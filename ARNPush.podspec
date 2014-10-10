@@ -9,7 +9,7 @@
 
 Pod::Spec.new do |s|
   s.name             = "ARNPush"
-  s.version          = "0.1.0"
+  s.version          = "0.1.1"
   s.summary          = "Wrap the Apple Push Notification Service (Remote Notification) Code Difference of iOS7 and iOS8."
   s.homepage         = "https://github.com/xxxAIRINxxx/ARNPush"
   # s.screenshots     = "www.example.com/screenshots_1", "www.example.com/screenshots_2"
