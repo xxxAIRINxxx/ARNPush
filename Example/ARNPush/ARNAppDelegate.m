@@ -34,6 +34,18 @@
         NSLog(@"Call ARNPush Badge Block");
     }];
     
+    [ARNPush setBackgroundFetchBlock:^(NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result)) {
+        NSLog(@"Call ARNPush Remote Background Fetch Block");
+        
+        resultBlock(UIBackgroundFetchResultNoData);
+    }];
+    
+    [ARNPush setHandleActionBlock:^(NSString *identifier, NSDictionary *userInfo, void (^completionHandler)()) {
+        NSLog(@"Call ARNPush Handle Action Block");
+        
+        completionHandler();
+    }];
+    
     [ARNPush registerForTypes:(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge)
                 launchOptions:launchOptions
                    categories:nil];
@@ -84,6 +96,16 @@
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
 {
     NSAssert(NO, @"no call didReceiveRemoteNotification");
+}
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler
+{
+    NSAssert(NO, @"no call didReceiveRemoteNotification fetchCompletionHandler");
+}
+
+- (void)application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forRemoteNotification:(NSDictionary *)userInfo completionHandler:(void(^)())completionHandler
+{
+    NSAssert(NO, @"no call handleActionWithIdentifier");
 }
 
 @end

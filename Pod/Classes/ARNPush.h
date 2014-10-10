@@ -8,8 +8,10 @@
 
 #import <Foundation/Foundation.h>
 
-typedef void (^ARNPushDeviceTokenBlock)(NSString *deviceToken, NSError *error);
 typedef void (^ARNPushBlock)(NSDictionary *userInfo);
+typedef void (^ARNPushDeviceTokenBlock)(NSString *deviceToken, NSError *error);
+typedef void (^ARNPushBackgroundFetchsBlock)(NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result));
+typedef void (^ARNPushHandleActionBlock)(NSString *identifier, NSDictionary *userInfo, void (^completionHandler)());
 
 @interface ARNPush : NSObject
 
@@ -22,6 +24,10 @@ typedef void (^ARNPushBlock)(NSDictionary *userInfo);
 + (void)setSoundBlock:(ARNPushBlock)soundBlock;
 
 + (void)setBadgeBlock:(ARNPushBlock)badgeBlock;
+
++ (void)setBackgroundFetchBlock:(ARNPushBackgroundFetchsBlock)backgroundFetchBlock;
+
++ (void)setHandleActionBlock:(ARNPushHandleActionBlock)handleActionBlock NS_AVAILABLE_IOS(8_0);
 
 + (void)registerForTypes:(UIRemoteNotificationType)types
            launchOptions:(NSDictionary *)launchOptions

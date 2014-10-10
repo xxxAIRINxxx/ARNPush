@@ -5,6 +5,10 @@
 [![License](https://img.shields.io/cocoapods/l/ARNPush.svg?style=flat)](http://cocoadocs.org/docsets/ARNPush)
 [![Platform](https://img.shields.io/cocoapods/p/ARNPush.svg?style=flat)](http://cocoadocs.org/docsets/ARNPush)
 
+## Attention
+
+### During the Test....
+
 ## Usage
 
 To run the example project, clone the repo, and run `pod install` from the Example directory first.
@@ -81,6 +85,11 @@ replaced the following methods.
 - (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
 
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo;
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler;
+
+// iOS 8.0+ Only
+- (void)application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forRemoteNotification:(NSDictionary *)userInfo completionHandler:(void(^)())completionHandler;
 
 ```
 

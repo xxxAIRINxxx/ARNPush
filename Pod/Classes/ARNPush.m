@@ -14,14 +14,16 @@
 #error This file must be compiled with ARC. Use -fobjc-arc flag (or convert project to ARC).
 #endif
 
-static BOOL canReceivedPush_ = NO;
+static BOOL ARNPush_canReceivedPush_ = NO;
 
-static ARNPushDeviceTokenBlock deviceTokenBlock_ = nil;
-static ARNPushBlock alertBlock_ = nil;
-static ARNPushBlock soundBlock_ = nil;
-static ARNPushBlock badgeBlock_ = nil;
+static ARNPushDeviceTokenBlock ARNPush_deviceTokenBlock_ = nil;
+static ARNPushBlock ARNPush_alertBlock_ = nil;
+static ARNPushBlock ARNPush_soundBlock_ = nil;
+static ARNPushBlock ARNPush_badgeBlock_ = nil;
+static ARNPushBackgroundFetchsBlock ARNPush_backgroundFetchBlock_ = nil;
+static ARNPushHandleActionBlock ARNPush_handleActionBlock_ = nil;
 
-static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^block)(id selfObj, id app, id params)) {
+static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id block) {
     IMP newIMP = imp_implementationWithBlock(block);
     class_replaceMethod(class, originalSelector, newIMP, method_getTypeEncoding(class_getInstanceMethod(class, originalSelector)));
 }
@@ -39,34 +41,44 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
 
 + (void)canReceivedPush:(BOOL)canReceivedPush
 {
-    canReceivedPush_ = canReceivedPush;
+    ARNPush_canReceivedPush_ = canReceivedPush;
 }
 
 + (void)setDeviceTokenBlock:(ARNPushDeviceTokenBlock)deviceTokenBlock
 {
-    deviceTokenBlock_ = [deviceTokenBlock copy];
+    ARNPush_deviceTokenBlock_ = [deviceTokenBlock copy];
 }
 
 + (void)setAlertBlock:(ARNPushBlock)alertBlock
 {
-    alertBlock_ = [alertBlock copy];
+    ARNPush_alertBlock_ = [alertBlock copy];
 }
 
 + (void)setSoundBlock:(ARNPushBlock)soundBlock
 {
-    soundBlock_ = [soundBlock copy];
+    ARNPush_soundBlock_ = [soundBlock copy];
 }
 
 + (void)setBadgeBlock:(ARNPushBlock)badgeBlock
 {
-    badgeBlock_ = [badgeBlock copy];
+    ARNPush_badgeBlock_ = [badgeBlock copy];
+}
+
++ (void)setBackgroundFetchBlock:(ARNPushBackgroundFetchsBlock)backgroundFetchBlock
+{
+    ARNPush_backgroundFetchBlock_ = [backgroundFetchBlock copy];
+}
+
++ (void)setHandleActionBlock:(ARNPushHandleActionBlock)handleActionBlock
+{
+    ARNPush_handleActionBlock_ = [handleActionBlock copy];
 }
 
 + (void)registerForTypes:(UIRemoteNotificationType)types
            launchOptions:(NSDictionary *)launchOptions
-              categories:(NSSet *)categories;
+              categories:(NSSet *)categories
 {
-    canReceivedPush_ = YES;
+    ARNPush_canReceivedPush_ = YES;
     
     UIApplication *app = [UIApplication sharedApplication];
     if ([[self class] isiOS8orLater]) {
@@ -83,7 +95,6 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
         [[self class] pushNotificationWithUserInfo:userInfo];
     }
     
-    //Method Swizzling
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
                               ^(id selfObj, id app, NSData *data) {
@@ -99,11 +110,25 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
                               ^(id selfObj, id app, NSDictionary *userInfo) {
                                   [[self class] didReceiveRemoteNotification:userInfo];
                               });
+    ARNPushReplaceClassMethod([app.delegate class],
+                              @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:),
+                              ^(id selfObj, id app, NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result)) {
+                                  [[self class] didReceiveRemoteNotification:userInfo fetchCompletionHandler:resultBlock];
+                              });
+    if ([[self class] isiOS8orLater]) {
+        ARNPushReplaceClassMethod([app.delegate class],
+                                  @selector(application:handleActionWithIdentifier:forRemoteNotification:completionHandler:),
+                                  ^(id selfObj, id app, NSString *identifier, NSDictionary *userInfo, void (^completionHandler)()) {
+                                      [[self class] handleActionWithIdentifier:identifier
+                                                         forRemoteNotification:userInfo
+                                                             completionHandler:completionHandler];
+                                  });
+    }
 }
 
 + (void)pushNotificationWithUserInfo:(NSDictionary *)userInfo
 {
-    if (!canReceivedPush_) {
+    if (!ARNPush_canReceivedPush_) {
         return;
     }
     
@@ -143,14 +168,14 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
         pushSound = YES;
     }
     
-    if (pushAlert && alertBlock_) {
-        alertBlock_(userInfo);
+    if (pushAlert && ARNPush_alertBlock_) {
+        ARNPush_alertBlock_(userInfo);
     }
-    if (pushSound && soundBlock_) {
-        soundBlock_(userInfo);
+    if (pushSound && ARNPush_soundBlock_) {
+        ARNPush_soundBlock_(userInfo);
     }
-    if (pushBadge && badgeBlock_) {
-        badgeBlock_(userInfo);
+    if (pushBadge && ARNPush_badgeBlock_) {
+        ARNPush_badgeBlock_(userInfo);
     }
 }
 
@@ -163,21 +188,38 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, void (^
     
     deviceTokenString = [deviceTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
     
-    if (deviceTokenBlock_) {
-        deviceTokenBlock_(deviceTokenString, nil);
+    if (ARNPush_deviceTokenBlock_) {
+        ARNPush_deviceTokenBlock_(deviceTokenString, nil);
     }
 }
 
 + (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
 {
-    if (deviceTokenBlock_) {
-        deviceTokenBlock_(nil, error);
+    if (ARNPush_deviceTokenBlock_) {
+        ARNPush_deviceTokenBlock_(nil, error);
     }
 }
 
 + (void)didReceiveRemoteNotification:(NSDictionary *)userInfo
 {
     [[self class] pushNotificationWithUserInfo:userInfo];
+}
+
++ (void)didReceiveRemoteNotification:(NSDictionary *)userInfo
+              fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler
+{
+    if (ARNPush_backgroundFetchBlock_) {
+        ARNPush_backgroundFetchBlock_(userInfo, completionHandler);
+    }
+}
+
++ (void)handleActionWithIdentifier:(NSString *)identifier
+             forRemoteNotification:(NSDictionary *)userInfo
+                 completionHandler:(void(^)())completionHandler
+{
+    if (ARNPush_handleActionBlock_) {
+        ARNPush_handleActionBlock_(identifier, userInfo, completionHandler);
+    }
 }
 
 @end
