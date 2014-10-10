@@ -185,12 +185,18 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         if (ARNPush_backgroundFetchBlock_) {
             ARNPush_backgroundFetchBlock_(userInfo, backgroundFetchBlock);
         } else {
+            if (pushAlert && ARNPush_alertBlock_) {
+                ARNPush_alertBlock_(userInfo);
+            }
             backgroundFetchBlock(UIBackgroundFetchResultNoData);
         }
     } else if (identifier && handleAtionBlock) {
         if (ARNPush_handleActionBlock_) {
             ARNPush_handleActionBlock_(identifier, userInfo, handleAtionBlock);
-        } else if (handleAtionBlock) {
+        } else {
+            if (pushAlert && ARNPush_alertBlock_) {
+                ARNPush_alertBlock_(userInfo);
+            }
             handleAtionBlock();
         }
     } else {
