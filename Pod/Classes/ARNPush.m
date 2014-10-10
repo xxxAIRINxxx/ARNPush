@@ -92,7 +92,10 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
     
     NSDictionary *userInfo = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
     if (userInfo) {
-        [[self class] pushNotificationWithUserInfo:userInfo];
+        [[self class] pushNotificationWithUserInfo:userInfo
+                              backgroundFetchBlock:nil
+                        handleActionWithIdentifier:nil
+                                  handleAtionBlock:nil];
     }
     
     ARNPushReplaceClassMethod([app.delegate class],
@@ -108,25 +111,35 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didReceiveRemoteNotification:),
                               ^(id selfObj, id app, NSDictionary *userInfo) {
-                                  [[self class] didReceiveRemoteNotification:userInfo];
+                                  [[self class] pushNotificationWithUserInfo:userInfo
+                                                        backgroundFetchBlock:nil
+                                                  handleActionWithIdentifier:nil
+                                                            handleAtionBlock:nil];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:),
                               ^(id selfObj, id app, NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result)) {
-                                  [[self class] didReceiveRemoteNotification:userInfo fetchCompletionHandler:resultBlock];
+                                  [[self class] pushNotificationWithUserInfo:userInfo
+                                                        backgroundFetchBlock:resultBlock
+                                                  handleActionWithIdentifier:nil
+                                                            handleAtionBlock:nil];
                               });
     if ([[self class] isiOS8orLater]) {
         ARNPushReplaceClassMethod([app.delegate class],
                                   @selector(application:handleActionWithIdentifier:forRemoteNotification:completionHandler:),
                                   ^(id selfObj, id app, NSString *identifier, NSDictionary *userInfo, void (^completionHandler)()) {
-                                      [[self class] handleActionWithIdentifier:identifier
-                                                         forRemoteNotification:userInfo
-                                                             completionHandler:completionHandler];
+                                      [[self class] pushNotificationWithUserInfo:userInfo
+                                                            backgroundFetchBlock:nil
+                                                      handleActionWithIdentifier:identifier
+                                                                handleAtionBlock:completionHandler];
                                   });
     }
 }
 
 + (void)pushNotificationWithUserInfo:(NSDictionary *)userInfo
+                backgroundFetchBlock:(void (^)(UIBackgroundFetchResult result))backgroundFetchBlock
+          handleActionWithIdentifier:(NSString *)identifier
+                    handleAtionBlock:(void(^)())handleAtionBlock
 {
     if (!ARNPush_canReceivedPush_) {
         return;
@@ -168,19 +181,36 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         pushSound = YES;
     }
     
-    if (pushAlert && ARNPush_alertBlock_) {
-        ARNPush_alertBlock_(userInfo);
-    }
-    if (pushSound && ARNPush_soundBlock_) {
-        ARNPush_soundBlock_(userInfo);
-    }
-    if (pushBadge && ARNPush_badgeBlock_) {
-        ARNPush_badgeBlock_(userInfo);
+    if (backgroundFetchBlock) {
+        if (ARNPush_backgroundFetchBlock_) {
+            ARNPush_backgroundFetchBlock_(userInfo, backgroundFetchBlock);
+        } else {
+            backgroundFetchBlock(UIBackgroundFetchResultNoData);
+        }
+    } else if (identifier && handleAtionBlock) {
+        if (ARNPush_handleActionBlock_) {
+            ARNPush_handleActionBlock_(identifier, userInfo, handleAtionBlock);
+        } else if (handleAtionBlock) {
+            handleAtionBlock();
+        }
+    } else {
+        if (pushAlert && ARNPush_alertBlock_) {
+            ARNPush_alertBlock_(userInfo);
+        }
+        if (pushSound && ARNPush_soundBlock_) {
+            ARNPush_soundBlock_(userInfo);
+        }
+        if (pushBadge && ARNPush_badgeBlock_) {
+            ARNPush_badgeBlock_(userInfo);
+        }
+        if (backgroundFetchBlock) {
+            backgroundFetchBlock(UIBackgroundFetchResultNoData);
+        }
+        if (handleAtionBlock) {
+            handleAtionBlock();
+        }
     }
 }
-
-// -------------------------------------------------------------------------------------------------------------------------------//
-#pragma mark - Method Swizzling
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
@@ -197,28 +227,6 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
 {
     if (ARNPush_deviceTokenBlock_) {
         ARNPush_deviceTokenBlock_(nil, error);
-    }
-}
-
-+ (void)didReceiveRemoteNotification:(NSDictionary *)userInfo
-{
-    [[self class] pushNotificationWithUserInfo:userInfo];
-}
-
-+ (void)didReceiveRemoteNotification:(NSDictionary *)userInfo
-              fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler
-{
-    if (ARNPush_backgroundFetchBlock_) {
-        ARNPush_backgroundFetchBlock_(userInfo, completionHandler);
-    }
-}
-
-+ (void)handleActionWithIdentifier:(NSString *)identifier
-             forRemoteNotification:(NSDictionary *)userInfo
-                 completionHandler:(void(^)())completionHandler
-{
-    if (ARNPush_handleActionBlock_) {
-        ARNPush_handleActionBlock_(identifier, userInfo, completionHandler);
     }
 }
 
