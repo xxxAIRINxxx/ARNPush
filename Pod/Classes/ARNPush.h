@@ -17,6 +17,12 @@ typedef void (^ARNPushHandleActionBlock)(NSString *identifier, NSDictionary *use
 
 + (void)setup;
 
++ (NSData *)deviceToken;
+
++ (NSString *)deviceTokenString;
+
++ (NSString *)stringFromDeviceToken:(NSData *)deviceToken;
+
 + (void)canReceivedPush:(BOOL)canReceivedPush;
 
 + (void)setDeviceTokenBlock:(ARNPushDeviceTokenBlock)deviceTokenBlock;

@@ -22,6 +22,7 @@ static ARNPushBlock ARNPush_soundBlock_ = nil;
 static ARNPushBlock ARNPush_badgeBlock_ = nil;
 static ARNPushBackgroundFetchsBlock ARNPush_backgroundFetchBlock_ = nil;
 static ARNPushHandleActionBlock ARNPush_handleActionBlock_ = nil;
+static NSData *ARNPush_deviceToken = nil;
 
 static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id block) {
     IMP newIMP = imp_implementationWithBlock(block);
@@ -79,14 +80,30 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
     ARNPush_handleActionBlock_ = [handleActionBlock copy];
 }
 
++ (NSData *)deviceToken
+{
+    return ARNPush_deviceToken;
+}
+
++ (NSString *)deviceTokenString
+{
+    return [self stringFromDeviceToken:ARNPush_deviceToken];
+}
+
++ (NSString *)stringFromDeviceToken:(NSData *)deviceToken{
+    NSString *deviceTokenString = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    return [deviceTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
+}
+
 + (void)setup{
     UIApplication *app = [UIApplication sharedApplication];
-
+    
     ARNPush_canReceivedPush_ = YES;
-
+    
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
                               ^(id selfObj, id app, NSData *data) {
+                                  ARNPush_deviceToken = data;
                                   [ARNPush didRegisterForRemoteNotificationsWithDeviceToken:data];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
@@ -100,7 +117,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                   [ARNPush pushNotificationWithUserInfo:userInfo
                                                    backgroundFetchBlock:nil
                                              handleActionWithIdentifier:nil
-                                                       handleActionBlock:nil];
+                                                      handleActionBlock:nil];
                               });
     
     if (ARNPush_backgroundFetchBlock_) {
@@ -110,7 +127,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                       [ARNPush pushNotificationWithUserInfo:userInfo
                                                        backgroundFetchBlock:resultBlock
                                                  handleActionWithIdentifier:nil
-                                                           handleActionBlock:nil];
+                                                          handleActionBlock:nil];
                                   });
     }
     
@@ -121,7 +138,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                       [ARNPush pushNotificationWithUserInfo:userInfo
                                                        backgroundFetchBlock:nil
                                                  handleActionWithIdentifier:identifier
-                                                           handleActionBlock:completionHandler];
+                                                          handleActionBlock:completionHandler];
                                   });
     }
     
@@ -132,7 +149,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         [ARNPush pushNotificationWithUserInfo:notification.userInfo
                          backgroundFetchBlock:nil
                    handleActionWithIdentifier:nil
-                             handleActionBlock:nil];
+                            handleActionBlock:nil];
     }
     
 }
@@ -155,7 +172,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
 + (void)pushNotificationWithUserInfo:(NSDictionary *)userInfo
                 backgroundFetchBlock:(void (^)(UIBackgroundFetchResult result))backgroundFetchBlock
           handleActionWithIdentifier:(NSString *)identifier
-                    handleActionBlock:(void(^)())handleActionBlock
+                   handleActionBlock:(void(^)())handleActionBlock
 {
     if (!ARNPush_canReceivedPush_) {
         return;
