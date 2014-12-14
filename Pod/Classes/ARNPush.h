@@ -9,11 +9,13 @@
 #import <Foundation/Foundation.h>
 
 typedef void (^ARNPushBlock)(NSDictionary *userInfo);
-typedef void (^ARNPushDeviceTokenBlock)(NSString *deviceToken, NSError *error);
+typedef void (^ARNPushDeviceTokenBlock)(NSData *deviceToken, NSError *error);
 typedef void (^ARNPushBackgroundFetchsBlock)(NSDictionary *userInfo, void (^resultBlock)(UIBackgroundFetchResult result));
 typedef void (^ARNPushHandleActionBlock)(NSString *identifier, NSDictionary *userInfo, void (^completionHandler)());
 
 @interface ARNPush : NSObject
+
++ (void)setup;
 
 + (void)canReceivedPush:(BOOL)canReceivedPush;
 
@@ -30,7 +32,6 @@ typedef void (^ARNPushHandleActionBlock)(NSString *identifier, NSDictionary *use
 + (void)setHandleActionBlock:(ARNPushHandleActionBlock)handleActionBlock NS_AVAILABLE_IOS(8_0);
 
 + (void)registerForTypes:(UIRemoteNotificationType)types
-           launchOptions:(NSDictionary *)launchOptions
               categories:(NSSet *)categories; // categories is iOS8 Only uses
 
 @end
