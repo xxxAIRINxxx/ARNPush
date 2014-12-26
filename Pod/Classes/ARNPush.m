@@ -22,6 +22,7 @@ static ARNPushBlock ARNPush_soundBlock_ = nil;
 static ARNPushBlock ARNPush_badgeBlock_ = nil;
 static ARNPushBackgroundFetchsBlock ARNPush_backgroundFetchBlock_ = nil;
 static ARNPushHandleActionBlock ARNPush_handleActionBlock_ = nil;
+static NSData *ARNPush_deviceToken = nil;
 
 static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id block) {
     IMP newIMP = imp_implementationWithBlock(block);
@@ -29,6 +30,11 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
 }
 
 @implementation ARNPush
+
++ (void)load {
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center addObserver:[ARNPush class] selector:@selector(handleAppDidFinishLaunchingNotification:) name:UIApplicationDidFinishLaunchingNotification object:nil];
+}
 
 + (BOOL)isiOS8orLater
 {
@@ -74,25 +80,30 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
     ARNPush_handleActionBlock_ = [handleActionBlock copy];
 }
 
-+ (void)registerForTypes:(UIRemoteNotificationType)types
-           launchOptions:(NSDictionary *)launchOptions
-              categories:(NSSet *)categories
++ (NSData *)deviceToken
 {
-    ARNPush_canReceivedPush_ = YES;
-    
+    return ARNPush_deviceToken;
+}
+
++ (NSString *)deviceTokenString
+{
+    return [self stringFromDeviceToken:ARNPush_deviceToken];
+}
+
++ (NSString *)stringFromDeviceToken:(NSData *)deviceToken{
+    NSString *deviceTokenString = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    return [deviceTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
+}
+
++ (void)setup{
     UIApplication *app = [UIApplication sharedApplication];
-    if ([[self class] isiOS8orLater]) {
-        [app registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationType)types
-                                                                                categories:categories]];
-        
-        [app registerForRemoteNotifications];
-    } else {
-        [app registerForRemoteNotificationTypes:types];
-    }
+    
+    ARNPush_canReceivedPush_ = YES;
     
     ARNPushReplaceClassMethod([app.delegate class],
                               @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:),
                               ^(id selfObj, id app, NSData *data) {
+                                  ARNPush_deviceToken = data;
                                   [ARNPush didRegisterForRemoteNotificationsWithDeviceToken:data];
                               });
     ARNPushReplaceClassMethod([app.delegate class],
@@ -106,7 +117,7 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                   [ARNPush pushNotificationWithUserInfo:userInfo
                                                    backgroundFetchBlock:nil
                                              handleActionWithIdentifier:nil
-                                                       handleAtionBlock:nil];
+                                                      handleActionBlock:nil];
                               });
     
     if (ARNPush_backgroundFetchBlock_) {
@@ -116,16 +127,8 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                       [ARNPush pushNotificationWithUserInfo:userInfo
                                                        backgroundFetchBlock:resultBlock
                                                  handleActionWithIdentifier:nil
-                                                           handleAtionBlock:nil];
+                                                          handleActionBlock:nil];
                                   });
-    } else {
-        NSDictionary *userInfo = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
-        if (userInfo) {
-            [ARNPush pushNotificationWithUserInfo:userInfo
-                             backgroundFetchBlock:nil
-                       handleActionWithIdentifier:nil
-                                 handleAtionBlock:nil];
-        }
     }
     
     if ([[self class] isiOS8orLater]) {
@@ -135,15 +138,41 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
                                       [ARNPush pushNotificationWithUserInfo:userInfo
                                                        backgroundFetchBlock:nil
                                                  handleActionWithIdentifier:identifier
-                                                           handleAtionBlock:completionHandler];
+                                                          handleActionBlock:completionHandler];
                                   });
     }
+    
+}
+
++ (void)handleAppDidFinishLaunchingNotification:(NSNotification *)notification {
+    if (notification.userInfo) {
+        [ARNPush pushNotificationWithUserInfo:notification.userInfo
+                         backgroundFetchBlock:nil
+                   handleActionWithIdentifier:nil
+                            handleActionBlock:nil];
+    }
+    
+}
+
++ (void)registerForTypes:(UIRemoteNotificationType)types
+              categories:(NSSet *)categories
+{
+    UIApplication *app = [UIApplication sharedApplication];
+    if ([[self class] isiOS8orLater]) {
+        [app registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationType)types
+                                                                                categories:categories]];
+        
+        [app registerForRemoteNotifications];
+    } else {
+        [app registerForRemoteNotificationTypes:types];
+    }
+    
 }
 
 + (void)pushNotificationWithUserInfo:(NSDictionary *)userInfo
                 backgroundFetchBlock:(void (^)(UIBackgroundFetchResult result))backgroundFetchBlock
           handleActionWithIdentifier:(NSString *)identifier
-                    handleAtionBlock:(void(^)())handleAtionBlock
+                   handleActionBlock:(void(^)())handleActionBlock
 {
     if (!ARNPush_canReceivedPush_) {
         return;
@@ -194,14 +223,14 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
             }
             backgroundFetchBlock(UIBackgroundFetchResultNoData);
         }
-    } else if (identifier && handleAtionBlock) {
+    } else if (identifier && handleActionBlock) {
         if (ARNPush_handleActionBlock_) {
-            ARNPush_handleActionBlock_(identifier, userInfo, handleAtionBlock);
+            ARNPush_handleActionBlock_(identifier, userInfo, handleActionBlock);
         } else {
             if (pushAlert && ARNPush_alertBlock_) {
                 ARNPush_alertBlock_(userInfo);
             }
-            handleAtionBlock();
+            handleActionBlock();
         }
     } else {
         if (pushAlert && ARNPush_alertBlock_) {
@@ -210,8 +239,8 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
         if (backgroundFetchBlock) {
             backgroundFetchBlock(UIBackgroundFetchResultNoData);
         }
-        if (handleAtionBlock) {
-            handleAtionBlock();
+        if (handleActionBlock) {
+            handleActionBlock();
         }
     }
     
@@ -225,12 +254,8 @@ static void ARNPushReplaceClassMethod(Class class, SEL originalSelector, id bloc
 
 + (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
-    NSString *deviceTokenString = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
-    
-    deviceTokenString = [deviceTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
-    
     if (ARNPush_deviceTokenBlock_) {
-        ARNPush_deviceTokenBlock_(deviceTokenString, nil);
+        ARNPush_deviceTokenBlock_(deviceToken, nil);
     }
 }
 
